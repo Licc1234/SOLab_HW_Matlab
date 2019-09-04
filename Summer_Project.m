@@ -19,7 +19,7 @@ sigy = 250*(10^6);
 
 %% ³Ì¨Î¤Æ
 
-x0 = [0.001; 0.001];
+x0 = [0.1; 0.05];
 A = [];
 b = [];
 Aeq = [];
@@ -27,7 +27,7 @@ beq = [];
 vlb = [0.001; 0.001];
 vub = [0.5; 0.5];
 
-[x, fval] = fmincon(@min, x0, A, b, Aeq, beq, vlb, vub, @limit);
+[x, fval,exitflag] = fmincon(@min, x0, A, b, Aeq, beq, vlb, vub, @limit);
 
 %% Functions
 
@@ -61,7 +61,7 @@ E = 200*(10^9);
 global rho
 rho = 7860;
 global sigy
-sigy = 250*(10^6);
+sigy = 250e6;
 global m1;
 m1 = A1*L1*rho*6;
 global m2;
@@ -96,8 +96,11 @@ s7 = sig2(pi*3/4, Q, 7, 8, 9, 10);
 s8 = sig2(pi*5/4, Q, 5, 6, 11, 12);
 s9 = sig2(pi*3/4, Q, 3, 4, 5, 6);
 s10 = sig2(pi*5/4, Q, 1, 2, 7, 8);
+s = [s1,s2,s3,s4,s5,s6,s7,s8,s9,s10];
+max_stress = max(abs(s));
 
-g = [s1-sigy; s2-sigy; s3-sigy; s4-sigy; s5-sigy; s6-sigy; s7-sigy; s8-sigy; s9-sigy; s10-sigy; sqrt(Q(3)*Q(3)+Q(4)*Q(4))-0.02];
+% g = [s1-sigy; s2-sigy; s3-sigy; s4-sigy; s5-sigy; s6-sigy; s7-sigy; s8-sigy; s9-sigy; s10-sigy; sqrt(Q(3)*Q(3)+Q(4)*Q(4))-0.02];
+g = [max_stress-sigy;sqrt(Q(3)*Q(3)+Q(4)*Q(4))-0.02];
 ceq = [];
 end
 
@@ -126,14 +129,17 @@ big(d1,d1) = M(1,1);
 big(d1,d2) = M(1,2);
 big(d1,d3) = M(1,3);
 big(d1,d4) = M(1,4);
+
 big(d2,d1) = M(2,1);
 big(d2,d2) = M(2,2);
 big(d2,d3) = M(2,3);
 big(d2,d4) = M(2,4);
+
 big(d3,d1) = M(3,1);
 big(d3,d2) = M(3,2);
 big(d3,d3) = M(3,3);
 big(d3,d4) = M(3,4);
+
 big(d4,d1) = M(4,1);
 big(d4,d2) = M(4,2);
 big(d4,d3) = M(4,3);
