@@ -125,25 +125,32 @@ end
 function big = ktrans(M,d1,d2,d3,d4)
 %將4X4矩陣擴充為12X12矩陣方便相加
 big = zeros(12);
-big(d1,d1) = M(1,1);
-big(d1,d2) = M(1,2);
-big(d1,d3) = M(1,3);
-big(d1,d4) = M(1,4);
-
-big(d2,d1) = M(2,1);
-big(d2,d2) = M(2,2);
-big(d2,d3) = M(2,3);
-big(d2,d4) = M(2,4);
-
-big(d3,d1) = M(3,1);
-big(d3,d2) = M(3,2);
-big(d3,d3) = M(3,3);
-big(d3,d4) = M(3,4);
-
-big(d4,d1) = M(4,1);
-big(d4,d2) = M(4,2);
-big(d4,d3) = M(4,3);
-big(d4,d4) = M(4,4);
+% big(d1,d1) = M(1,1);
+% big(d1,d2) = M(1,2);
+% big(d1,d3) = M(1,3);
+% big(d1,d4) = M(1,4);
+% 
+% big(d2,d1) = M(2,1);
+% big(d2,d2) = M(2,2);
+% big(d2,d3) = M(2,3);
+% big(d2,d4) = M(2,4);
+% 
+% big(d3,d1) = M(3,1);
+% big(d3,d2) = M(3,2);
+% big(d3,d3) = M(3,3);
+% big(d3,d4) = M(3,4);
+% 
+% big(d4,d1) = M(4,1);
+% big(d4,d2) = M(4,2);
+% big(d4,d3) = M(4,3);
+% big(d4,d4) = M(4,4);
+for i = 1:4
+    im = [d1 d2 d3 d4];
+    for j = 1:4
+        jm = [d1 d2 d3 d4];
+        big(im(i), jm(j)) = M(i, j);
+    end
+end
 end
 
 function f = sig1(r, Q, d1, d2, d3, d4)
