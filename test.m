@@ -1,81 +1,52 @@
 clear
 
-global r1
-r1 = 0.1;
-global r2
-r2 = 0.05;
-global L1
-L1 = 9.14;
-global L2
-L2 = L1/cos(pi/4);
-global A1;
-A1 = r1*r1*pi;
-global A2;
-A2 = r2*r2*pi;
-global E
-E = 200*(10^9);
-global rho
-rho = 7860;
-global sigy
-sigy = 250*(10^6);
-global m1;
-m1 = A1*L1*rho*6;
-global m2;
-m2 = A2*L2*rho*6;
+% m-kg-N-s-Pa-rad
+r1 = 0.1; % m
+r2 = 0.05; % m
+A1 = r1^2*pi;
+A2 = r2^2*pi;
+L1 = 9.14; % m
+L2 = L1/cos(pi/4.0); % m
+E = 200.0e9; % Pa
+rho = 7860.0; % kg/m^3
+sigy = 250.0e6; % Pa
 
-% K calculation
-% 爹秆DOF
-k1 = krad1(pi); % 5 6 9 10
-k2 = krad1(pi); % 1 2 5 6
-k3 = krad1(pi); % 7 8 11 12
-k4 = krad1(pi); % 3 4 7 8
-k5 = krad1(pi*3/2); % 5 6 7 8
-k6 = krad1(pi*3/2); % 1 2 3 4
-k7 = krad2(pi*3/4); % 7 8 9 10
-k8 = krad2(pi*5/4); % 5 6 11 12
-k9 = krad2(pi*3/4); % 3 4 5 6
-k10 = krad2(pi*5/4); % 1 2 7 8
-kmat = ktrans(k1,5,6,9,10) + ktrans(k2,1,2,5,6) + ktrans(k3,7,8,11,12) + ktrans(k4,3,4,7,8) + ktrans(k5,5,6,7,8) + ktrans(k6,1,2,3,4) + ktrans(k7,7,8,9,10) + ktrans(k8,5,6,11,12) + ktrans(k9,3,4,5,6) + ktrans(k10,1,2,7,8);
-kmat2 = kmat(1:8, 1:8);
-% KQ = F
-Q = inv(kmat2)*[0;0;0;-10000000;0;0;0;-10000000];
-Q = [Q; 0; 0; 0; 0];
+% k matrix calculation
+k1 = ktheta(pi,A1,E,L1); % 5 6 9 10
+k2 = ktheta(pi,A1,E,L1); % 1 2 5 6
+k3 = ktheta(pi,A1,E,L1); % 7 8 11 12
+k4 = ktheta(pi,A1,E,L1); % 3 4 7 8
+k5 = ktheta(pi*3/2,A1,E,L1); % 5 6 7 8
+k6 = ktheta(pi*3/2,A1,E,L1); % 1 2 3 4
+k7 = ktheta(pi*3/4,A2,E,L2); % 7 8 9 10
+k8 = ktheta(pi*5/4,A2,E,L2); % 5 6 11 12
+k9 = ktheta(pi*3/4,A2,E,L2); % 3 4 5 6
+k10 = ktheta(pi*5/4,A2,E,L2); % 1 2 7 8
 
-function k = krad1(r)
-%璸衡祏膘
-%计node计タ
-global A1;
-global E;
-global L1;
-k = A1*E/L1*[cos(r).*cos(r) cos(r).*sin(r) -cos(r).*cos(r) -cos(r).*sin(r); cos(r).*sin(r) sin(r).*sin(r) -cos(r).*sin(r) -sin(r).*sin(r); -cos(r).*cos(r) -cos(r).*sin(r) cos(r).*cos(r) cos(r).*sin(r); -cos(r).*sin(r) -sin(r).*sin(r) cos(r).*sin(r) sin(r).*sin(r)];
-end
+% mix all 4X4 matrix into 12X12
+kmat = ktrans(k1,5,6,9,10) + ktrans(k2,1,2,5,6) + ...
+    ktrans(k3,7,8,11,12) + ktrans(k4,3,4,7,8) + ...
+    ktrans(k5,5,6,7,8) + ktrans(k6,1,2,3,4) + ...
+    ktrans(k7,7,8,9,10) + ktrans(k8,5,6,11,12) + ...
+    ktrans(k9,3,4,5,6) + ktrans(k10,1,2,7,8);
 
-function k = krad2(r)
-%璸衡膘
-%计node计タ
-global A2;
-global E;
-global L2;
-k = A2*E/L2*[cos(r).*cos(r) cos(r).*sin(r) -cos(r).*cos(r) -cos(r).*sin(r); cos(r).*sin(r) sin(r).*sin(r) -cos(r).*sin(r) -sin(r).*sin(r); -cos(r).*cos(r) -cos(r).*sin(r) cos(r).*cos(r) cos(r).*sin(r); -cos(r).*sin(r) -sin(r).*sin(r) cos(r).*sin(r) sin(r).*sin(r)];
+function k = ktheta(theta,A,E,L)
+% K matrix calculation for each truss
+% 计node计タ
+k = A*E/L*[cos(theta)^2 cos(theta)*sin(theta) -cos(theta)^2 -cos(theta)*sin(theta);
+    cos(theta)*sin(theta) sin(theta)^2 -cos(theta)*sin(theta) -sin(theta)^2;
+    -cos(theta)^2 -cos(theta)*sin(theta) cos(theta)^2 cos(theta)*sin(theta);
+    -cos(theta)*sin(theta) -sin(theta)^2 cos(theta)*sin(theta) sin(theta)^2];
 end
 
 function big = ktrans(M,d1,d2,d3,d4)
 %盢4X4痻皚耎12X12痻皚よ獽
 big = zeros(12);
-big(d1,d1) = M(1,1);
-big(d1,d2) = M(1,2);
-big(d1,d3) = M(1,3);
-big(d1,d4) = M(1,4);
-big(d2,d1) = M(2,1);
-big(d2,d2) = M(2,2);
-big(d2,d3) = M(2,3);
-big(d2,d4) = M(2,4);
-big(d3,d1) = M(3,1);
-big(d3,d2) = M(3,2);
-big(d3,d3) = M(3,3);
-big(d3,d4) = M(3,4);
-big(d4,d1) = M(4,1);
-big(d4,d2) = M(4,2);
-big(d4,d3) = M(4,3);
-big(d4,d4) = M(4,4);
+for i = 1:4
+    im = [d1 d2 d3 d4];
+    for j = 1:4
+        jm = [d1 d2 d3 d4];
+        big(im(i),jm(j)) = M(i,j);
+    end
+end
 end
