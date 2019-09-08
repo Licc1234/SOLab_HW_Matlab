@@ -4,122 +4,106 @@ clear
 
 %% Parameters
 
+% m-kg-N-s-Pa-rad
 % r1, r2ゼ
-global L1
-L1 = 9.14;
-global L2
-L2 = L1/cos(pi/4);
-global E
-E = 200*(10^9);
-global rho
-rho = 7860;
-global sigy
-sigy = 250*(10^6);
+L1 = 9.14; % m
+L2 = L1/cos(pi/4.0); % m
+E = 200.0e9; % Pa
+rho = 7860.0; % kg/m^3
+sigy = 250.0e6; % Pa
 
 
 %% 程ㄎて
 
-x0 = [0.1; 0.05];
+% fmincon setup
+x0 = [0.1;0.05];
 A = [];
 b = [];
 Aeq = [];
 beq = [];
-vlb = [0.001; 0.001];
-vub = [0.5; 0.5];
+vlb = [0.001;0.001];
+vub = [0.5;0.5];
+options = optimoptions('fmincon');
 
-[x, fval,exitflag] = fmincon(@min, x0, A, b, Aeq, beq, vlb, vub, @limit);
+[x,fval,exitflag] = fmincon(@mincon,x0,A,b,Aeq,beq,vlb,vub,@limit,options);
 
-%% Functions
+%% fmincon Functions
 
-function f = min(r)
-global L1
+function f = mincon(r)
 L1 = 9.14;
-global L2
-L2 = L1/cos(pi/4);
-global A1;
+L2 = L1/cos(pi/4.0);
 A1 = r(1)*r(1)*pi;
-global A2;
 A2 = r(2)*r(2)*pi;
-global rho
-rho = 7860;
+rho = 7860.0;
 
-f = A1*L1*rho*6 + A2*L2*rho*4;
+% m1 + m2
+f = A1*L1*rho*6.0 + A2*L2*rho*4.0;
 
 end
 
-function [g, ceq] = limit(r)
-global L1
-L1 = 9.14;
-global L2
-L2 = L1/cos(pi/4);
-global A1;
-A1 = r(1)*r(1)*pi;
-global A2;
-A2 = r(2)*r(2)*pi;
-global E
-E = 200*(10^9);
-global rho
-rho = 7860;
-global sigy
-sigy = 250e6;
-global m1;
-m1 = A1*L1*rho*6;
-global m2;
-m2 = A2*L2*rho*6;
-
-% K calculation
+function [g,ceq] = limit(r)
+% K & Q calculation
 % 爹秆DOF
-k1 = krad1(pi); % 5 6 9 10
-k2 = krad1(pi); % 1 2 5 6
-k3 = krad1(pi); % 7 8 11 12
-k4 = krad1(pi); % 3 4 7 8
-k5 = krad1(pi*3/2); % 5 6 7 8
-k6 = krad1(pi*3/2); % 1 2 3 4
-k7 = krad2(pi*3/4); % 7 8 9 10
-k8 = krad2(pi*5/4); % 5 6 11 12
-k9 = krad2(pi*3/4); % 3 4 5 6
-k10 = krad2(pi*5/4); % 1 2 7 8
-kmat = ktrans(k1,5,6,9,10) + ktrans(k2,1,2,5,6) + ktrans(k3,7,8,11,12) + ktrans(k4,3,4,7,8) + ktrans(k5,5,6,7,8) + ktrans(k6,1,2,3,4) + ktrans(k7,7,8,9,10) + ktrans(k8,5,6,11,12) + ktrans(k9,3,4,5,6) + ktrans(k10,1,2,7,8);
-kmat2 = kmat(1:8, 1:8);
+
+L1 = 9.14;
+L2 = L1/cos(pi/4.0);
+A1 = r(1)*r(1)*pi;
+A2 = r(2)*r(2)*pi;
+E = 200.0e9;
+sigy = 250.0e6;
+
+% k matrix calculation
+k1 = ktheta(pi,A1,E,L1); % 5 6 9 10
+k2 = ktheta(pi,A1,E,L1); % 1 2 5 6
+k3 = ktheta(pi,A1,E,L1); % 7 8 11 12
+k4 = ktheta(pi,A1,E,L1); % 3 4 7 8
+k5 = ktheta(pi*3/2,A1,E,L1); % 5 6 7 8
+k6 = ktheta(pi*3/2,A1,E,L1); % 1 2 3 4
+k7 = ktheta(pi*3/4,A2,E,L2); % 7 8 9 10
+k8 = ktheta(pi*5/4,A2,E,L2); % 5 6 11 12
+k9 = ktheta(pi*3/4,A2,E,L2); % 3 4 5 6
+k10 = ktheta(pi*5/4,A2,E,L2); % 1 2 7 8
+
+% mix all 4X4 matrix into 12X12
+kmat = ktrans(k1,5,6,9,10) + ktrans(k2,1,2,5,6) + ...
+    ktrans(k3,7,8,11,12) + ktrans(k4,3,4,7,8) + ...
+    ktrans(k5,5,6,7,8) + ktrans(k6,1,2,3,4) + ...
+    ktrans(k7,7,8,9,10) + ktrans(k8,5,6,11,12) + ...
+    ktrans(k9,3,4,5,6) + ktrans(k10,1,2,7,8);
+
 % KQ = F
-Q = inv(kmat2)*[0;0;0;-10000000;0;0;0;-10000000];
-Q = [Q; 0; 0; 0; 0];
+% Q(1,7:10) = 0
+Q = kmat(1:8,1:8)\[0;0;0;-10000000;0;0;0;-10000000];
+Q = [Q;0;0;0;0];
 
 %―sigma
-s1 = sig1(pi, Q, 5, 6, 9, 10);
-s2 = sig1(pi, Q, 1, 2, 5, 6);
-s3 = sig1(pi, Q, 7, 8, 11, 12);
-s4 = sig1(pi, Q, 3, 4, 7, 8);
-s5 = sig1(pi*3/2, Q, 5, 6, 7, 8);
-s6 = sig1(pi*3/2, Q, 1, 2, 3, 4);
-s7 = sig2(pi*3/4, Q, 7, 8, 9, 10);
-s8 = sig2(pi*5/4, Q, 5, 6, 11, 12);
-s9 = sig2(pi*3/4, Q, 3, 4, 5, 6);
-s10 = sig2(pi*5/4, Q, 1, 2, 7, 8);
-s = [s1,s2,s3,s4,s5,s6,s7,s8,s9,s10];
-max_stress = max(abs(s));
+sig1 = sig(pi,E,L1,Q,5,6,9,10);
+sig2 = sig(pi,E,L1,Q,1,2,5,6);
+sig3 = sig(pi,E,L1,Q,7,8,11,12);
+sig4 = sig(pi,E,L1,Q,3,4,7,8);
+sig5 = sig(pi*3/2,E,L1,Q,5,6,7,8);
+sig6 = sig(pi*3/2,E,L1,Q,1,2,3,4);
+sig7 = sig(pi*3/4,E,L2,Q,7,8,9,10);
+sig8 = sig(pi*5/4,E,L2,Q,5,6,11,12);
+sig9 = sig(pi*3/4,E,L2,Q,3,4,5,6);
+sig10 = sig(pi*5/4,E,L2,Q,1,2,7,8);
 
+% limitations matrix
 % g = [s1-sigy; s2-sigy; s3-sigy; s4-sigy; s5-sigy; s6-sigy; s7-sigy; s8-sigy; s9-sigy; s10-sigy; sqrt(Q(3)*Q(3)+Q(4)*Q(4))-0.02];
-g = [max_stress-sigy;sqrt(Q(3)*Q(3)+Q(4)*Q(4))-0.02];
+s = [sig1,sig2,sig3,sig4,sig5,sig6,sig7,sig8,sig9,sig10];
+max_stress = max(abs(s));
+g = [max_stress-sigy;sqrt(Q(3)^2+Q(4)^2)-0.02];
 ceq = [];
 end
 
-function k = krad1(r)
-%璸衡祏膘
-%计node计タ
-global A1;
-global E;
-global L1;
-k = A1*E/L1*[cos(r).*cos(r) cos(r).*sin(r) -cos(r).*cos(r) -cos(r).*sin(r); cos(r).*sin(r) sin(r).*sin(r) -cos(r).*sin(r) -sin(r).*sin(r); -cos(r).*cos(r) -cos(r).*sin(r) cos(r).*cos(r) cos(r).*sin(r); -cos(r).*sin(r) -sin(r).*sin(r) cos(r).*sin(r) sin(r).*sin(r)];
-end
-
-function k = krad2(r)
-%璸衡膘
-%计node计タ
-global A2;
-global E;
-global L2;
-k = A2*E/L2*[cos(r).*cos(r) cos(r).*sin(r) -cos(r).*cos(r) -cos(r).*sin(r); cos(r).*sin(r) sin(r).*sin(r) -cos(r).*sin(r) -sin(r).*sin(r); -cos(r).*cos(r) -cos(r).*sin(r) cos(r).*cos(r) cos(r).*sin(r); -cos(r).*sin(r) -sin(r).*sin(r) cos(r).*sin(r) sin(r).*sin(r)];
+%% Calculations function
+function k = ktheta(theta,A,E,L)
+% K matrix calculation for each truss
+% 计node计タ
+k = A*E/L*[cos(theta)^2 cos(theta)*sin(theta) -cos(theta)^2 -cos(theta)*sin(theta);
+    cos(theta)*sin(theta) sin(theta)^2 -cos(theta)*sin(theta) -sin(theta)^2;
+    -cos(theta)^2 -cos(theta)*sin(theta) cos(theta)^2 cos(theta)*sin(theta);
+    -cos(theta)*sin(theta) -sin(theta)^2 cos(theta)*sin(theta) sin(theta)^2];
 end
 
 function big = ktrans(M,d1,d2,d3,d4)
@@ -148,26 +132,14 @@ for i = 1:4
     im = [d1 d2 d3 d4];
     for j = 1:4
         jm = [d1 d2 d3 d4];
-        big(im(i), jm(j)) = M(i, j);
+        big(im(i),jm(j)) = M(i,j);
     end
 end
 end
 
-function f = sig1(r, Q, d1, d2, d3, d4)
-%璸衡祏膘
-%计node计タ
-global E;
-global L1;
-f = E/L1*[-cos(r) -sin(r) cos(r) sin(r)]*[Q(d1);Q(d2);Q(d3);Q(d4)];
+function f = sig(theta,E,L,Q,d1,d2,d3,d4)
+% sigma calculation for each truss
+% 计node计タ
+f = E/L*[-cos(theta) -sin(theta) cos(theta) sin(theta)]...
+    *[Q(d1);Q(d2);Q(d3);Q(d4)];
 end
-
-function f = sig2(r, Q, d1, d2, d3, d4)
-%璸衡膘
-%计node计タ
-global E;
-global L2;
-f = E/L2*[-cos(r) -sin(r) cos(r) sin(r)]*[Q(d1);Q(d2);Q(d3);Q(d4)];
-end
-
-
-
